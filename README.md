@@ -1,1 +1,1 @@
-Python project for single cell data analysis 
+Python project for single cell RNA Sequencing 
