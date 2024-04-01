@@ -1,1 +1,1 @@
-Python project for single cell RNA Sequencing 
+Python project for visualization onsingle cell RNA Sequencing 
