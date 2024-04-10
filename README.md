@@ -1,7 +1,7 @@
 Object Oriented Programming II focusing on visualizations using ScanPy
 
 # `Scanpy-OOP2`
-Visualizatino of core `scanpy` plot with `marsilea` for visualization.
+Visualization of core `scanpy` plot with `marsilea` for visualization.
 
 ---------------------------
 
