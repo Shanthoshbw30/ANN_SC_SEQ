@@ -23,6 +23,32 @@ OOP2_visualization/tutorials/ contains .ipynb files for OOP python program of Gr
 
 ---------------------------
 
+## Specifications required
+Python 3.6 or newer
+Jupyter Notebook or JupyterLab
+Libraries: matplotlib, pandas, numpy, ipywidgets
+You can install the required Python libraries with pip:
+
+pip install matplotlib pandas numpy ipywidgets
+
+
+Installation
+Clone this repository or download the notebook directly:
+CODE:
+git clone [repository-url]
+cd [repository-name]
+
+Usage
+To open this notebook, navigate to the cloned directory and run:
+CODE:
+jupyter notebook from Paris-Saclay (recomended) or GPU supported workstation with jupyter notebook
+
+How to Use
+Start the Kernel: Once the notebook is open, start the kernel via the Jupyter interface.
+Run All Cells: Execute all cells in the notebook to initialize the environment and functions.
+Interact: Use the provided widgets to interact with the plots.
+
+
 
 ## Team members
 
