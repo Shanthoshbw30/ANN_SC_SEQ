@@ -104,8 +104,15 @@ cell_markers = \{\
     "FCGR3A+ Monocytes": ["FCGR3A", "MS4A7"],\
     "Dendritic cells": ["FCER1A", "CST3"],\
     "Megakaryocytes": ["PPBP"],\
+    \
 \}\
 \
+\
+cells, markers = [], []\
+for c, ms in cell_markers.items():\
+    cells += [c] * len(ms)\
+    markers += ms\
+    \
 uni_cells = list(cell_markers.keys())\
 cell_colors = [\
     "#568564",\
@@ -119,5 +126,4 @@ cell_colors = [\
 ]\
 cmapper = dict(zip(uni_cells, cell_colors))\
 \
-create_scRNA_seq_plots(adata, cell_markers, uni_cells, cmapper)\
-}
+create_scRNA_seq_plots(adata, cell_markers, uni_cells, cmapper)}
