@@ -1,11 +1,11 @@
 Object Oriented Programming II focusing on visualizations using ScanPy
 
 # `Scanpy-OOP2`
-Visualization of core `scanpy` plot with `marsilea` for visualization.
+Visualization of RNA-seq data using `scanpy` plot with `marsilea`.
 
 ---------------------------
 
-A GENIOMHE Master 1 Python project
+Master 1 Object Oriented Python project from GENIOMHE
 
 
 ### File contents
