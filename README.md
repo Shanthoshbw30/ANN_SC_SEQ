@@ -41,6 +41,11 @@ git clone https://github.com/Shanthoshbw30/OOP2_Visualisation.git
 
 cd OOP2_Visualisation
 
+cd Codes
+
+cd Interactive_plots
+
+
 !pip install anndata
 
 !pip install scanpy
