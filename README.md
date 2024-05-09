@@ -39,8 +39,14 @@ Clone this repository or download the notebook directly:
 CODE:
 git clone https://github.com/Shanthoshbw30/OOP2_Visualisation.git
 
-
 cd OOP2_Visualisation
+
+!pip install anndata
+!pip install scanpy
+!pip install celltypist
+!pip install decoupler
+!pip install marsilea
+!pip install numpy
 
 Usage
 To open this notebook, navigate to the cloned directory and run:
