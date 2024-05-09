@@ -8,23 +8,41 @@ import marsilea.plotter as mp
 import plotly.express as px
 import plotly.graph_objs as go
 
+
 def load_and_preprocess_data():
+    
+    """
+    Load and preprocess the single-cell RNA-seq data.
+    """
+    
+    #Predefining verbosity
     sc.settings.verbosity = 3
     sc.logging.print_header()
     sc.settings.set_figure_params(dpi=200, facecolor="white")
     
+    #a dataset from 10x containing 68k cells from PBMC
     results_file = "write/pbmc3k.h5ad"
     
     adata = sc.datasets.pbmc3k_processed().raw.to_adata()
+    
     adata.obs_names_make_unique()
     adata.var_names_make_unique()
     
     return adata, results_file
 
+
+
+
 def filter_and_qc(adata):
+    """
+    Filter cells and genes based on quality control metrics.
+    """    
+    
     sc.pp.filter_cells(adata, min_genes=200)
     sc.pp.filter_genes(adata, min_cells=3)
     
+    
+    # mitochondrial genes
     adata.var["mt"] = adata.var_names.str.startswith("MT-")
     
     sc.pp.calculate_qc_metrics(
@@ -33,9 +51,18 @@ def filter_and_qc(adata):
     
     return adata
 
+
+
 def preprocess_data(adata):
+    """
+    Preprocess data by filtering, normalization, and gene selection.
+    """    
+    
     adata = adata[adata.obs.n_genes_by_counts < 2500, :]
     adata = adata[adata.obs.pct_counts_mt < 5, :].copy()
+   
+
+    # Saving count data
     adata.layers["counts"] = adata.X.copy()
     
     sc.pp.normalize_total(adata, target_sum=1e4)
@@ -50,6 +77,10 @@ def preprocess_data(adata):
     return adata
 
 def run_clustering_and_embedding(adata):
+    
+    """
+    Run Clsutering and embedding.
+    """
     sc.pp.neighbors(adata)
     sc.tl.umap(adata)
     
@@ -74,19 +105,32 @@ def run_clustering_and_embedding(adata):
     
     return adata
 
+
+
 def run_differential_expression_analysis(adata):
+    
+    """
+    Run differential expression analysis.
+    """    
     sc.tl.rank_genes_groups(adata, "leiden", method="t-test")
     sc.tl.rank_genes_groups(adata, "louvain", method="t-test")
 
     sc.tl.rank_genes_groups(adata, "leiden", method="logreg")
     sc.tl.rank_genes_groups(adata, "louvain", method="logreg")
-    sc.tl.rank_genes_groups(adata, groupby='leiden', method='wilcoxon', groups=["0"], reference="1")
-    sc.tl.rank_genes_groups(adata, "louvain", method="wilcoxon",groups=["0"], reference="1")
+    sc.tl.rank_genes_groups(adata, groupby='leiden', method='wilcoxon', groups=["0","1","2","3","4","5","6"], reference="1")
+    sc.tl.rank_genes_groups(adata, "louvain", method="wilcoxon",groups=["0","1","2","3","4","5","6"], reference="1")
     adata.uns['rank_genes_groups']
     
     return adata
 
+
+
 def extract_de_results(adata, groups):
+    
+    """
+    Extract differential expression results.
+    """
+    
     if 'rank_genes_groups' in adata.uns:
         groups = adata.uns['rank_genes_groups']['names'].dtype.names
         print("Differential expression analysis has been run.")
@@ -124,15 +168,17 @@ def extract_de_results(adata, groups):
 
     return all_de_results
 
-
     
     
 
 
-def create_i_volcano_plot(adata, groups, pval_cutoff=0.05, log2fc_cutoff=1, top_n=3):
+def create_i_volcano_plot(adata, groups, pval_cutoff=0.05, log2fc_cutoff=1, top_n=10):
+    """
+    Create a dynamic volcano plot of Upregularted and Downlregulated Genes.
+    """    
+    
     # Extract differential expression results for the specified group
     de_results = extract_de_results(adata, groups)
-    
     
     # Get top significant genes
     sig_genes = de_results[(de_results['pvals_adj'] < pval_cutoff) & (de_results['logfoldchanges'].abs() >= log2fc_cutoff)]
@@ -140,6 +186,8 @@ def create_i_volcano_plot(adata, groups, pval_cutoff=0.05, log2fc_cutoff=1, top_
     sig_downregulated = de_results[(de_results['pvals_adj'] < pval_cutoff) & (de_results['logfoldchanges'] < -log2fc_cutoff)]
     top_up_genes = sig_upregulated.nlargest(top_n, '-log10pvals_adj')
     top_down_genes = sig_downregulated.nlargest(top_n, '-log10pvals_adj')
+   
+
     # Create the interactive volcano plot
     fig = px.scatter(
         de_results, 
@@ -147,8 +195,7 @@ def create_i_volcano_plot(adata, groups, pval_cutoff=0.05, log2fc_cutoff=1, top_
         y=-np.log10(de_results['pvals_adj']),
         color=np.where((de_results['pvals_adj'] < pval_cutoff) & (de_results['logfoldchanges'].abs() >= log2fc_cutoff), 'DE', 'not DE'),
         hover_data=['gene_names']
-    )
-    
+    ) 
     # Add horizontal line for p-value cutoff
     fig.add_shape(
         type='line',
@@ -156,7 +203,6 @@ def create_i_volcano_plot(adata, groups, pval_cutoff=0.05, log2fc_cutoff=1, top_
         x0=-max(de_results['logfoldchanges']), x1=max(de_results['logfoldchanges']),
         y0=-np.log10(pval_cutoff), y1=-np.log10(pval_cutoff)
     )
-
     # Add vertical lines for log2fc cutoffs
     fig.add_shape(
         type='line',
@@ -170,7 +216,6 @@ def create_i_volcano_plot(adata, groups, pval_cutoff=0.05, log2fc_cutoff=1, top_
         x0=log2fc_cutoff, x1=log2fc_cutoff,
         y0=0, y1=max(de_results['-log10pvals_adj'])
     )
-
     # Add upregulated genes
     fig.add_trace(go.Scatter(
         x=sig_upregulated['logfoldchanges'],
@@ -181,7 +226,6 @@ def create_i_volcano_plot(adata, groups, pval_cutoff=0.05, log2fc_cutoff=1, top_
         text=sig_upregulated['gene_names'],
         hoverinfo='text'
     ))
-
     # Add downregulated genes
     fig.add_trace(go.Scatter(
         x=sig_downregulated['logfoldchanges'],
@@ -191,10 +235,7 @@ def create_i_volcano_plot(adata, groups, pval_cutoff=0.05, log2fc_cutoff=1, top_
         name='Downregulated',
         text=sig_downregulated['gene_names'],
         hoverinfo='text'
-    ))
-
-
-    
+    )) 
     # Set layout properties
     fig.update_layout(
         title=f'Interactive Volcano Plot ',
@@ -203,13 +244,20 @@ def create_i_volcano_plot(adata, groups, pval_cutoff=0.05, log2fc_cutoff=1, top_
         template='plotly_white', width=1000,  # Set the width of the plot
         height=600,  # Set the height of the plot
         xaxis=dict(range=[-7, 7]),
-        yaxis=dict(range=[0, 15])
-    )
+        yaxis=dict(range=[0, 15])   )
 
     # Show figure
     fig.show()
 
+
+
+
 def create_interactive_volcano_plot(adata, groups, pval_cutoff=0.05, log2fc_cutoff=1, top_n=10):
+
+    """
+    Create a dynamic volcano plot of Differential expressed genes.
+    """    
+    
     
     # Get top significant genes
     de_results = extract_de_results(adata, groups)
@@ -227,8 +275,19 @@ def create_interactive_volcano_plot(adata, groups, pval_cutoff=0.05, log2fc_cuto
         name='not DE',
         marker=dict(color='grey', size=5),
         text=de_results['gene_names'],
-        hoverinfo='text'
-    ))
+        hoverinfo='text' ))
+    
+    for i, row in top_genes.iterrows():
+        fig.add_annotation(
+            x=row['log2foldchanges'],
+            y=row['-log10pvals_adj'],
+            text=row['gene_names'],
+            showarrow=True,
+            arrowhead=1,
+            arrowsize=2,
+            arrowwidth=1,
+            arrowcolor='black')
+        
 
     # Add scatter plot of significant genes
     fig.add_trace(go.Scatter(
@@ -238,8 +297,7 @@ def create_interactive_volcano_plot(adata, groups, pval_cutoff=0.05, log2fc_cuto
         name='DE',
         marker=dict(color='red', size=5),
         text=sig_genes['gene_names'],
-        hoverinfo='text'
-    ))
+        hoverinfo='text'))
 
     # Add labels for the top N significant genes
     for i, row in top_genes.iterrows():
@@ -251,8 +309,7 @@ def create_interactive_volcano_plot(adata, groups, pval_cutoff=0.05, log2fc_cuto
             arrowhead=1,
             arrowsize=2,
             arrowwidth=1,
-            arrowcolor='black'
-        )
+            arrowcolor='black')
 
     # Set layout properties
     fig.update_layout(
@@ -262,41 +319,42 @@ def create_interactive_volcano_plot(adata, groups, pval_cutoff=0.05, log2fc_cuto
         template='plotly_white', width=1000,  # Set the width of the plot
     height=600,  # Set the height of the plot
     xaxis=dict(range=[-7, 7]),
-    yaxis=dict(range=[0, 15])
-    )
+    yaxis=dict(range=[0, 15]) )
 
     # Add horizontal line for p-value cutoff
     fig.add_shape(
         type='line',
         line=dict(dash='dash', color='black', width=1),
         x0=-max(de_results['log2foldchanges']), x1=max(de_results['log2foldchanges']),
-        y0=-np.log10(pval_cutoff), y1=-np.log10(pval_cutoff)
-    )
+        y0=-np.log10(pval_cutoff), y1=-np.log10(pval_cutoff))
 
     # Add vertical lines for log2fc cutoffs
     fig.add_shape(
         type='line',
         line=dict(dash='dash', color='black', width=1),
         x0=-log2fc_cutoff, x1=-log2fc_cutoff,
-        y0=0, y1=max(de_results['-log10pvals_adj'])
-    )
+        y0=0, y1=max(de_results['-log10pvals_adj'])  )
     fig.add_shape(
         type='line',
         line=dict(dash='dash', color='black', width=1),
         x0=log2fc_cutoff, x1=log2fc_cutoff,
-        y0=0, y1=max(de_results['-log10pvals_adj'])
-    )
+        y0=0, y1=max(de_results['-log10pvals_adj']))
 
     # Show figure
     fig.show()
 
-def plot_volcano(de_results, pval_cutoff=0.05, log2fc_cutoff=1):
+
+def plot_volcano(de_results,  pval_cutoff=0.05, log2fc_cutoff=1):
+    
+    
+
     # Replace zeros and negative values in 'logfoldchanges' to avoid log2 of non-positive numbers
     de_results['logfoldchanges'] = de_results['logfoldchanges'].replace(0, np.nextafter(0, 1))
     de_results['log2foldchanges'] = np.sign(de_results['logfoldchanges']) * np.log2(np.abs(de_results['logfoldchanges']))
 
     # Calculate the -log10 of adjusted p-values
     de_results['-log10pvals_adj'] = -np.log10(de_results['pvals_adj'].replace(0, np.nextafter(0, 1)))
+    top_genes = de_results.nlargest(10, '-log10pvals_adj')
 
     # Plotting with Plotly
     fig = px.scatter(
@@ -307,6 +365,17 @@ def plot_volcano(de_results, pval_cutoff=0.05, log2fc_cutoff=1):
         hover_data=['gene_names']
     )
 
+    for i, row in top_genes.iterrows():
+        fig.add_annotation(
+            x=row['log2foldchanges'],
+            y=row['-log10pvals_adj'],
+            text=row['gene_names'],
+            showarrow=True,
+            arrowhead=1,
+            arrowsize=2,
+            arrowwidth=1,
+            arrowcolor='black')
+        
     # Update traces to customize marker size
     fig.update_traces(marker=dict(size=10))
 
@@ -331,24 +400,35 @@ def plot_volcano(de_results, pval_cutoff=0.05, log2fc_cutoff=1):
     )
 
     # Show plot
-    fig.show()    
+    
+    
     
 def main():
     adata, results_file = load_and_preprocess_data()
     adata = filter_and_qc(adata)
+    print("\n")
     adata = preprocess_data(adata)
+    print("\n")
     adata = run_clustering_and_embedding(adata)
+    print("\n")
     adata = run_differential_expression_analysis(adata)
+    print("\n")
+
+  
     groups = adata.obs['leiden'].unique().tolist()
-    type(groups)
-    for group in groups:
-        create_i_volcano_plot(adata,groups)
-    for i in range(len(groups)):
-        create_interactive_volcano_plot(adata, groups)
+    print("\n")
     
-#Example usage:
+    type(groups)
+    print(groups)
+    
+    create_i_volcano_plot(adata,groups)
+    print("\n")
+    print("\n")
+    
     de_results = extract_de_results(adata, groups)
+
     plot_volcano(de_results)
         
 if __name__ == "__main__":
     main()
+
