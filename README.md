@@ -34,9 +34,13 @@ pip install matplotlib pandas numpy ipywidgets
 
 Installation
 Clone this repository or download the notebook directly:
+
+
 CODE:
 git clone https://github.com/Shanthoshbw30/OOP2_Visualisation.git
-cd [repository-name]
+
+
+cd OOP2_Visualisation
 
 Usage
 To open this notebook, navigate to the cloned directory and run:
